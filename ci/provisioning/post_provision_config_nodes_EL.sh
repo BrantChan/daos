@@ -18,6 +18,9 @@ set +e
 set -e
     # Seems to be needed to fix some issues.
     dnf -y reinstall sssd-common
+    # Seems to be required until https://daosio.atlassian.net/browse/DAOS-18358
+    # is fixed.
+    dnf -y remove clamav-lib
 }
 
 group_repo_post() {
@@ -28,8 +31,5 @@ group_repo_post() {
 distro_custom() {
     # TODO: This code is not exiting on failure.
 
-    # Use a more recent python version for unit testing, this allows us to also test installing
-    # pydaos into virtual environments.
-    dnf -y install python39 python39-devel
     dnf -y install python3.11 python3.11-devel
 }
