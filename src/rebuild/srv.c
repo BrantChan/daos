@@ -456,10 +456,14 @@ rebuild_tgt_query(struct rebuild_tgt_pool_tracker *rpt,
 	struct ds_migrate_status	dms = { 0 };
 	struct rebuild_pool_tls		*tls;
 	struct rebuild_tgt_query_arg	arg;
+	bool                             global_scan_done;
 	int				rc;
 
 	arg.rpt = rpt;
 	arg.status = status;
+
+	/* Get rt_global_scan_done before querying dms.dm_migrating status */
+	global_scan_done = rpt->rt_global_scan_done;
 
 	if (rpt->rt_rebuild_op != RB_OP_RECLAIM && rpt->rt_rebuild_op != RB_OP_FAIL_RECLAIM) {
 		rc = ds_migrate_query_status(rpt->rt_pool_uuid, rpt->rt_rebuild_ver,
@@ -485,7 +489,7 @@ rebuild_tgt_query(struct rebuild_tgt_pool_tracker *rpt,
 	status->obj_count += dms.dm_obj_count;
 	status->rec_count = dms.dm_rec_count;
 	status->size = dms.dm_total_size;
-	if (status->scanning || dms.dm_migrating)
+	if (!global_scan_done || status->scanning || dms.dm_migrating)
 		status->rebuilding = true;
 	else
 		status->rebuilding = false;
