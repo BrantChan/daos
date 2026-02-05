@@ -3941,7 +3941,7 @@ migrate_check_one(void *data)
 	arg->dms.dm_total_size += tls->mpt_size;
 	if (arg->dms.dm_status == 0)
 		arg->dms.dm_status = tls->mpt_status;
-	arg->total_ult_cnt = tls->mpt_tgt_obj_ult_cnt + tls->mpt_tgt_dkey_ult_cnt;
+	arg->total_ult_cnt += (tls->mpt_tgt_obj_ult_cnt + tls->mpt_tgt_dkey_ult_cnt);
 	arg->ult_running += tls->mpt_ult_running;
 	ABT_mutex_unlock(arg->status_lock);
 	D_DEBUG(DB_REBUILD,
