@@ -1,5 +1,6 @@
 //
 // (C) Copyright 2024 Intel Corporation.
+// (C) Copyright 2026 Hewlett Packard Enterprise Development LP
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 //
@@ -140,8 +141,11 @@ func RunSelfTest(ctx context.Context, cfg *daos.SelfTestConfig) ([]*daos.SelfTes
 	var cSizeLatencies ***C.struct_st_latency
 	var bufAlignment = C.int16_t(cfg.BufferAlignment)
 
-	cGroupName := C.CString(cfg.GroupName)
-	defer C.free(unsafe.Pointer(cGroupName))
+	var cGroupName *C.char
+	if cfg.GroupName != "" {
+		cGroupName = C.CString(cfg.GroupName)
+		defer C.free(unsafe.Pointer(cGroupName))
+	}
 
 	if len(cfg.MasterEndpoints) > 0 {
 		numOptMsEndpoints = C.uint(len(cfg.MasterEndpoints))

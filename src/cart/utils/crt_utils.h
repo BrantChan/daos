@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2019-2024 Intel Corporation.
- * (C) Copyright 2025 Hewlett Packard Enterprise Development LP
+ * (C) Copyright 2025-2026 Hewlett Packard Enterprise Development LP
  *
  * SPDX-License-Identifier: BSD-2-Clause-Patent
  */
@@ -76,7 +76,7 @@ int
 crtu_dc_mgmt_net_cfg_rank_add(const char *name, crt_group_t *group,
 			      crt_context_t *context);
 int
-crtu_dc_mgmt_net_cfg_setenv(const char *name, crt_init_options_t *opt);
+crtu_dc_mgmt_net_cfg_setenv(const char *name, crt_init_options_t *opt, char **name_out);
 
 int
 crtu_cli_start_basic(char *local_group_name, char *srv_group_name,

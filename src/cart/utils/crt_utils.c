@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2019-2024 Intel Corporation.
- * (C) Copyright 2025 Hewlett Packard Enterprise Development LP
+ * (C) Copyright 2025-2026 Hewlett Packard Enterprise Development LP
  *
  * SPDX-License-Identifier: BSD-2-Clause-Patent
  */
@@ -410,8 +410,21 @@ err_group:
 	return rc;
 }
 
+/**
+ * Initialize crt_init_options_t structure and environment variables with details from the
+ * DAOS agent.
+ *
+ * @param[in] name
+ *		Optional system name for querying the DAOS agent. If NULL, the agent will report
+ *      the actual system name.
+ * @param[out] opt
+ *		Pointer to crt_init_options_t structure to fill in.
+ * @param[out] name_out
+ *		Optional pointer to return the system name used by the agent. Must be non-NULL if
+ *      name is NULL. The caller is responsible for freeing the allocated string.
+ */
 int
-crtu_dc_mgmt_net_cfg_setenv(const char *name, crt_init_options_t *opt)
+crtu_dc_mgmt_net_cfg_setenv(const char *name, crt_init_options_t *opt, char **name_out)
 {
 	int                      rc;
 	int                      cli_srx_set      = 0;
@@ -421,6 +434,11 @@ crtu_dc_mgmt_net_cfg_setenv(const char *name, crt_init_options_t *opt)
 
 	if (opt == NULL) {
 		D_ERROR("Wrong NULL opt\n");
+		return -DER_INVAL;
+	}
+
+	if (name == NULL && name_out == NULL) {
+		D_ERROR("name_out is NULL, unable to return system name\n");
 		return -DER_INVAL;
 	}
 
@@ -456,6 +474,12 @@ crtu_dc_mgmt_net_cfg_setenv(const char *name, crt_init_options_t *opt)
 
 	opt->cio_crt_timeout = crt_net_cfg_info.crt_timeout;
 
+	if (name_out != NULL) {
+		D_STRNDUP(*name_out, crt_net_cfg_info.system_name, DAOS_SYS_INFO_STRING_MAX);
+		if (*name_out == NULL)
+			D_GOTO(cleanup, rc = -DER_NOMEM);
+	}
+
 cleanup:
 	dc_put_attach_info(&crt_net_cfg_info, crt_net_cfg_resp);
 	return rc;
@@ -481,7 +505,7 @@ crtu_cli_start_basic(char *local_group_name, char *srv_group_name,
 		D_GOTO(out, rc);
 
 	if (use_daos_agent_env) {
-		rc = crtu_dc_mgmt_net_cfg_setenv(srv_group_name, &local_opt);
+		rc = crtu_dc_mgmt_net_cfg_setenv(srv_group_name, &local_opt, NULL);
 		if (rc != 0)
 			D_GOTO(out, rc);
 		init_opt = &local_opt;

@@ -1,5 +1,6 @@
 //
 // (C) Copyright 2024 Intel Corporation.
+// (C) Copyright 2026 Hewlett Packard Enterprise Development LP
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 //
@@ -15,7 +16,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/daos-stack/daos/src/control/build"
 	"github.com/daos-stack/daos/src/control/lib/ranklist"
 )
 
@@ -89,9 +89,6 @@ func (cfg *SelfTestConfig) SetDefaults() error {
 		return errors.New("nil config")
 	}
 
-	if cfg.GroupName == "" {
-		cfg.GroupName = build.DefaultSystemName
-	}
 	if len(cfg.EndpointTags) == 0 {
 		cfg.EndpointTags = []uint32{0}
 	}
@@ -120,9 +117,6 @@ func (cfg *SelfTestConfig) Validate() error {
 		return errors.New("nil config")
 	}
 
-	if cfg.GroupName == "" {
-		return errors.New("group name is required")
-	}
 	if len(cfg.EndpointTags) == 0 {
 		return errors.New("endpoint tag list is required")
 	}
