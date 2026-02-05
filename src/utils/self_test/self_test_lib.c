@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2016-2024 Intel Corporation.
- * (C) Copyright 2025 Hewlett Packard Enterprise Development LP
+ * (C) Copyright 2025-2026 Hewlett Packard Enterprise Development LP
  *
  * SPDX-License-Identifier: BSD-2-Clause-Patent
  */
@@ -61,6 +61,7 @@ self_test_init(char *dest_name, crt_context_t *crt_ctx, crt_group_t **srv_grp, p
 	int                 ret;
 	crt_init_options_t  opt = {0};
 	crt_init_options_t *init_opt;
+	char               *sys_name = NULL;
 
 	/* rank, num_attach_retries, is_server, assert_on_error */
 	crtu_test_init(0, attach_retries, false, false);
@@ -71,7 +72,7 @@ self_test_init(char *dest_name, crt_context_t *crt_ctx, crt_group_t **srv_grp, p
 			fprintf(stderr, "dc_agent_init() failed. ret: %d\n", ret);
 			return ret;
 		}
-		ret = crtu_dc_mgmt_net_cfg_setenv(dest_name, &opt);
+		ret = crtu_dc_mgmt_net_cfg_setenv(dest_name, &opt, &sys_name);
 		if (ret != 0) {
 			D_ERROR("crtu_dc_mgmt_net_cfg_setenv() failed; ret = %d\n", ret);
 			return ret;
@@ -87,7 +88,7 @@ self_test_init(char *dest_name, crt_context_t *crt_ctx, crt_group_t **srv_grp, p
 
 	ret = crt_init_opt(CRT_SELF_TEST_GROUP_NAME, init_flags, init_opt);
 	if (ret != 0)
-		return ret;
+		D_GOTO(out, ret);
 
 	D_FREE(opt.cio_provider);
 	D_FREE(opt.cio_interface);
@@ -102,26 +103,26 @@ self_test_init(char *dest_name, crt_context_t *crt_ctx, crt_group_t **srv_grp, p
 	ret = crt_context_create(crt_ctx);
 	if (ret != 0) {
 		D_ERROR("crt_context_create failed; ret = %d\n", ret);
-		return ret;
+		D_GOTO(out, ret);
 	}
 	g_context_created = true;
 
 	if (use_agent) {
-		ret = crt_group_view_create(dest_name, srv_grp);
+		ret = crt_group_view_create(sys_name, srv_grp);
 		if (!*srv_grp || ret != 0) {
 			D_ERROR("Failed to create group view; ret=%d\n", ret);
 			assert(0);
 		}
 
-		ret = crtu_dc_mgmt_net_cfg_rank_add(dest_name, *srv_grp, *crt_ctx);
+		ret = crtu_dc_mgmt_net_cfg_rank_add(sys_name, *srv_grp, *crt_ctx);
 		if (ret != 0) {
 			fprintf(stderr, "crtu_dc_mgmt_net_cfg_rank_add() failed. ret: %d\n", ret);
-			return ret;
+			D_GOTO(out, ret);
 		}
 	} else {
 		/* DAOS-8839: Do not limit retries, instead rely on global test timeout */
 		while (1) {
-			ret = crt_group_attach(dest_name, srv_grp);
+			ret = crt_group_attach(sys_name, srv_grp);
 			if (ret == 0)
 				break;
 			sleep(1);
@@ -130,7 +131,7 @@ self_test_init(char *dest_name, crt_context_t *crt_ctx, crt_group_t **srv_grp, p
 
 	if (ret != 0) {
 		D_ERROR("crt_group_attach failed; ret = %d\n", ret);
-		return ret;
+		D_GOTO(out, ret);
 	}
 
 	g_group_inited = true;
@@ -142,7 +143,7 @@ self_test_init(char *dest_name, crt_context_t *crt_ctx, crt_group_t **srv_grp, p
 	ret = pthread_create(tid, NULL, progress_fn, crt_ctx);
 	if (ret != 0) {
 		D_ERROR("failed to create progress thread: %s\n", strerror(errno));
-		return -DER_MISC;
+		D_GOTO(out, ret = -DER_MISC);
 	}
 
 	ret = crt_group_size(*srv_grp, &grp_size);
@@ -179,10 +180,12 @@ self_test_init(char *dest_name, crt_context_t *crt_ctx, crt_group_t **srv_grp, p
 	ret = crt_rank_self_set(max_rank + 1, 1 /* group_version_min */);
 	if (ret != 0) {
 		D_ERROR("crt_rank_self_set failed; ret = %d\n", ret);
-		return ret;
+		D_GOTO(out, ret);
 	}
 
-	return 0;
+out:
+	D_FREE(sys_name);
+	return ret;
 }
 
 void
